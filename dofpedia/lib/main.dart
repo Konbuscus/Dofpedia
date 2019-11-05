@@ -1,8 +1,9 @@
+import 'package:dofpedia/database.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:localstorage/localstorage.dart';
 import 'package:splashscreen/splashscreen.dart';
-import 'package:flutter_database/database.dart';
+
+
 void main() {
   runApp(new MaterialApp(
     home: new MyApp(),
@@ -17,8 +18,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
-    //On vérifie si le fichier characters.json est dans le dossier
-    //Si il existe on ne fait rien ici :)
+  
     return new SplashScreen(
         seconds: 5,
         navigateAfterSeconds: new AfterSplash(),
@@ -38,41 +38,48 @@ class _MyAppState extends State<MyApp> {
 class AfterSplash extends StatelessWidget {
 
    //On référence la bdd ici
-   final dbHelper = DatabaseHelper.instance;
+   final dbHelper = DataBaseHelper.instance;
 
   @override
   Widget build(BuildContext context) {
     //Pas besoin de future builder ici, on va écrire un fichier json au lancement de l'appli
     //Si le fichier existe déjà on va seulement le charger
 
-    return FutureBuilder(
-      future: storage.ready,
+          return FutureBuilder(
+      future: DataBaseHelper.instance.queryAllRows(),
       builder: (BuildContext context, snapshot) {
-        if (1==0) {
-          Map<String, String> data = storage.getItem('characterName');
-          print(data);
-        //Liste des noms de personnages
-          
-        } else {
+        
           return Scaffold(
             appBar: AppBar(
               title: Text('Vos personnages'),
               backgroundColor: Colors.orange,
             ),
-            body: Align(
-              alignment: Alignment.topRight,
+            body: new Container(
+              child:new Stack(
+                  children: <Widget>[
+                    Align(
+              alignment: Alignment.topCenter,
               child: new IconButton(
                 icon: Icon(Icons.add, color: Colors.green),
                 onPressed: () {
                   displayAndInput(context);
                 },
+
               ),
-            ),
+              
+            ),  
+            Padding(
+              padding: const EdgeInsets.all(40.0),
+              child: buildCharactersListView(context, snapshot),
+            )
+                  ],
+              )
+            )
           );
-        }
       },
     );
   }
+      
 
   displayAndInput(BuildContext context) async {
     TextEditingController tec = TextEditingController();
@@ -92,6 +99,7 @@ class AfterSplash extends StatelessWidget {
                   //Sauvegarde dans la base de données
                   insertName(tec.value.text);
                   Navigator.of(context).pop();
+                 
                 },
               ),
               CupertinoDialogAction(
@@ -105,14 +113,29 @@ class AfterSplash extends StatelessWidget {
           );
         });
   }
-}
-
-void insertName(nameValue) async{
+  void insertName(nameValue) async{
   Map<String, dynamic> row = {
-    DatabaseHelper.columnName : nameValue,
-    DatabaseHelper.columnItemsEquipped : ""
+    DataBaseHelper.columnName : nameValue,
+    DataBaseHelper.columnItemsEquipped : ""
   };
   final id = await dbHelper.insert(row);
 }
+}
 
-Widget buildCharactersListView(BuildContext context, AsyncSnapshot snapshot) {}
+
+
+Widget buildCharactersListView(BuildContext context, AsyncSnapshot snapshot) {
+
+  return ListView.builder(
+        itemCount: snapshot.data.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            trailing: new Icon(Icons.favorite),
+            title: Text(snapshot.data[index]["nom"]),
+            onTap: (){
+
+            },
+          );
+        },
+      );
+}

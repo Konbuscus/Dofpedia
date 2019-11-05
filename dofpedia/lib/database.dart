@@ -1,4 +1,4 @@
-import 'dart:indexed_db';
+
 import 'dart:io';
 
 import 'package:path/path.dart';
@@ -20,11 +20,10 @@ class DataBaseHelper {
 
   static Database _database;
   Future<Database> get database async {
-    if (database != null) {
-      return database;
-    }
+    if (_database != null) return _database;
+    // lazily instantiate the db the first time it is accessed
     _database = await initDatabase();
-    return database;
+    return _database;
   }
 
   initDatabase() async {
@@ -76,6 +75,6 @@ class DataBaseHelper {
   Future<int> queryRowCount() async {
     Database db = await instance.database;
     return Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM $table'));
+        await db.rawQuery('SELECT COUNT(*) FROM $charactersTable'));
   }
 }
