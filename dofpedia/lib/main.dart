@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:splashscreen/splashscreen.dart';
-
+import 'package:flutter_database/database.dart';
 void main() {
   runApp(new MaterialApp(
     home: new MyApp(),
@@ -36,7 +36,9 @@ class _MyAppState extends State<MyApp> {
 }
 
 class AfterSplash extends StatelessWidget {
-  final LocalStorage storage = new LocalStorage('characters');
+
+   //On référence la bdd ici
+   final dbHelper = DatabaseHelper.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -87,8 +89,8 @@ class AfterSplash extends StatelessWidget {
               CupertinoDialogAction(
                 child: Text("Sauvegarder"),
                 onPressed: () {
-                  //Ecriture dans le fichier json
-                  storage.setItem("characterName", tec.value.text);
+                  //Sauvegarde dans la base de données
+                  insertName(tec.value.text);
                   Navigator.of(context).pop();
                 },
               ),
@@ -103,6 +105,14 @@ class AfterSplash extends StatelessWidget {
           );
         });
   }
+}
+
+void insertName(nameValue) async{
+  Map<String, dynamic> row = {
+    DatabaseHelper.columnName : nameValue,
+    DatabaseHelper.columnItemsEquipped : ""
+  };
+  final id = await dbHelper.insert(row);
 }
 
 Widget buildCharactersListView(BuildContext context, AsyncSnapshot snapshot) {}
