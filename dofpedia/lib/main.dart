@@ -232,7 +232,7 @@ class _MyAppState extends State<MyApp> {
                         id: data[i]["_id"],
                         name: data[i]["nom"],
                         type: data[i]["type"],
-                        url: data[i]["maleImg"]))
+                        url: data[i]["url"]))
                   }
               })
         });
@@ -242,7 +242,7 @@ class _MyAppState extends State<MyApp> {
     Map<String, dynamic> row = {
       DataBaseHelper.columnName: character.name,
       DataBaseHelper.columnClass: character.type,
-      DataBaseHelper.columnUrlImg: character.url,
+      DataBaseHelper.columnUrlImg: character.url.toString(),
       DataBaseHelper.columnItemsEquipped: ""
     };
     final id = await dbHelper.insert(row);

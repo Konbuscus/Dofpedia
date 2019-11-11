@@ -21,8 +21,8 @@ class _EquipmentsState extends State<Equipments> {
 
   @override
   Widget build(BuildContext context) {
-
-    return new FutureBuilder(
+    return new Scaffold(body:
+    new FutureBuilder(
       future: getItems(),
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         switch (snapshot.connectionState) {
@@ -36,7 +36,9 @@ class _EquipmentsState extends State<Equipments> {
               return buildListItemView(context, snapshot);
         }
       },
+    )
     );
+    
   }
 
   Widget buildListItemView(BuildContext context, AsyncSnapshot snapshot){

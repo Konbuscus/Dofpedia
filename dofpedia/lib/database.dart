@@ -41,7 +41,7 @@ class DataBaseHelper {
     await db.execute('''CREATE TABLE $charactersTable (
         $columnId INTEGER PRIMARY KEY,
         $columnName TEXT NOT NULL,
-        $columnUrlImg TEXT NULL,
+        $columnUrlImg TEXT,
         $columnClass TEXT NOT NULL,
         $columnItemsEquipped TEXT NOT NULL
       )
