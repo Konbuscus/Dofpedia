@@ -4,6 +4,9 @@ import 'dart:io';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert' as convert;
+import 'models/classes.dart';
 
 class DataBaseHelper {
   static final databaseName = "userData.db";
@@ -11,8 +14,9 @@ class DataBaseHelper {
   static final charactersTable = "characters";
   static final columnId = "_id";
   static final columnName = "nom";
-  static final columnClass = "classe";
+  static final columnClass = "type";
   static final columnItemsEquipped = "items";
+  static final columnUrlImg = "url";
 
   //On fait un singleton
   DataBaseHelper._privateConstructor();
@@ -37,9 +41,19 @@ class DataBaseHelper {
     await db.execute('''CREATE TABLE $charactersTable (
         $columnId INTEGER PRIMARY KEY,
         $columnName TEXT NOT NULL,
+        $columnUrlImg TEXT NULL,
+        $columnClass TEXT NOT NULL,
         $columnItemsEquipped TEXT NOT NULL
       )
       ''');
+
+      //Tables des classes
+     //Récupération des classes et insertion dans la base + création de la table 
+ 
+     //await db.execute("CREATE TABLE CLASSES (_id INTEGER PRIMARY KEY, " +
+     // "nom TEXT NOT NULL, url TEXT NOT NULL)"); 
+
+      
   }
   //$columnClass TEXT NOT NULL,
   /*Méthodes helper*/
@@ -77,4 +91,6 @@ class DataBaseHelper {
     return Sqflite.firstIntValue(
         await db.rawQuery('SELECT COUNT(*) FROM $charactersTable'));
   }
+
+ 
 }

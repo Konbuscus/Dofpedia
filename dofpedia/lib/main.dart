@@ -1,8 +1,13 @@
 import 'package:dofpedia/database.dart';
 import 'package:dofpedia/equipments.dart';
+import 'package:dofpedia/models/characters.dart';
+import 'package:dofpedia/models/classes.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:animated_splash/animated_splash.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert' as convert;
 
 void main() {
   Function duringSplash = () {
@@ -11,7 +16,7 @@ void main() {
   };
 
   runApp(new MaterialApp(
-    home: AnimatedSplash(
+      home: AnimatedSplash(
     imagePath: "assets/images/dofpedia.png",
     home: MyApp(),
     type: AnimatedSplashType.StaticDuration,
@@ -27,17 +32,17 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  //On référence la bdd ici
+  final double _kPickerItemHeight = 32.0;
   final dbHelper = DataBaseHelper.instance;
   int tabIndex = 1;
-  List<String> charactersNames = List<String>();
-  int _page = 0;
-  PageController _c;
+  List<Characters> characters = List<Characters>();
+  List<Classes> dofusClass = List<Classes>();
+
   @override
   void initState() {
     super.initState();
     populateCharacters();
-   
+    getClasses();
   }
 
   @override
@@ -46,40 +51,39 @@ class _MyAppState extends State<MyApp> {
     //Si le fichier existe déjà on va seulement le charger
 
     return Scaffold(
-        appBar: AppBar(
-          title: Text('Dofpedia'),
-          backgroundColor: Colors.lightGreen
-        ),
-        body: new Container(
-            child: new Stack(
-          children: <Widget>[
-            Align(
-              alignment: Alignment.topCenter,
-              child: new IconButton(
-                icon: Icon(CupertinoIcons.add, color: Colors.blue),
-                onPressed: () {
+      appBar:
+          AppBar(title: Text('Dofpedia'), backgroundColor: Colors.lightGreen),
+      body: new Container(
+          child: new Stack(
+        children: <Widget>[
+          Align(
+            alignment: Alignment.topCenter,
+            child: new IconButton(
+              icon: Icon(CupertinoIcons.add, color: Colors.blue),
+              onPressed: () {
+                setState(() {
                   displayAndInput(context);
-                },
-              ),
+                });
+              },
             ),
-            Padding(
-              padding: const EdgeInsets.all(40.0),
-              child: buildCharactersListView(context),
-            ),
-            
-          ],
-        )
-        ),
-        bottomNavigationBar: new BottomNavigationBar(
+          ),
+          Padding(
+            padding: const EdgeInsets.all(40.0),
+            child: buildCharactersListView(context),
+          ),
+        ],
+      )),
+      bottomNavigationBar: new BottomNavigationBar(
         currentIndex: tabIndex,
-        onTap: (int index) { setState((){ 
-          this.tabIndex = index;
-           }); 
-            Navigator.push(
+        onTap: (int index) {
+          setState(() {
+            this.tabIndex = index;
+          });
+          Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => Equipments()),
           );
-        }, 
+        },
         fixedColor: Colors.lightGreen,
         items: <BottomNavigationBarItem>[
           new BottomNavigationBarItem(
@@ -96,25 +100,25 @@ class _MyAppState extends State<MyApp> {
           )
         ],
       ),
-        );
+    );
   }
 
   Widget buildCharactersListView(BuildContext context) {
     return ListView.builder(
-      itemCount: charactersNames.length,
+      itemCount: characters.length,
       itemBuilder: (context, index) {
         return ListTile(
-          trailing: new Icon(Icons.favorite),
-          title: Text(charactersNames[index]),
+          trailing: Image.network(characters[index].url),
+          title: Text(characters[index].name),
           onTap: () {},
           onLongPress: () {
-            return showCupertinoDialog(
+            return showCupertinoModalPopup(
                 context: context,
                 builder: (context) {
-//Pop up suppression
+                  //Pop up suppression
                   return CupertinoAlertDialog(
                     title: new Text(
-                        "Suppression du personnage " + charactersNames[index]),
+                        "Suppression du personnage " + characters[index].name),
                     content: new Text(
                         "Voulez-vous vraiment supprimer ce personnage ?"),
                     actions: <Widget>[
@@ -125,10 +129,10 @@ class _MyAppState extends State<MyApp> {
                           //Fermeture modale
                           Navigator.of(context).pop();
                           //Suppression en base
-                          removeCharactersFromDb(index);
+                          removeCharactersFromDb(characters[index].id);
                           //setstate remove name
                           setState(() {
-                            charactersNames.removeAt(index);
+                            characters.removeAt(index);
                           });
                         },
                       ),
@@ -138,7 +142,7 @@ class _MyAppState extends State<MyApp> {
                           //Fermeture modale
                           Navigator.of(context).pop();
                         },
-                      )
+                      ),
                     ],
                   );
                 });
@@ -148,36 +152,72 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  displayAndInput(BuildContext context) async {
+   displayAndInput(BuildContext context){
     TextEditingController tec = TextEditingController();
-    return showCupertinoDialog(
+    String defaultValueSelect = dofusClass.elementAt(0).name;
+    List<String> namesValues = dofusClass.map((f) => f.name).toList();
+    Characters c = new Characters();
+    return showDialog(
         context: context,
         builder: (context) {
-          return CupertinoAlertDialog(
+          return AlertDialog(
             title: new Text("Nom du personnage"),
-            content: new CupertinoTextField(
+            content: new TextField(
               controller: tec,
-              decoration: BoxDecoration(),
             ),
             actions: <Widget>[
-              CupertinoDialogAction(
-                child: Text("Sauvegarder"),
-                onPressed: () {
-                  //Sauvegarde dans la base de données
-                  insertName(tec.value.text);
-                  Navigator.of(context).pop();
-                  setState(() {
-                    charactersNames.add(tec.value.text);
-                  });
-                },
-              ),
-              CupertinoDialogAction(
-                child: Text("Annuler"),
-                onPressed: () {
-                  //Fermeture de la popup
-                  Navigator.of(context).pop();
-                },
-              ),
+              Container(
+                child: Column(
+                  children: <Widget>[
+                    DropdownButton<String>(
+                      value: defaultValueSelect,
+                      style: TextStyle(color: Colors.lightGreen),
+                      underline: Container(
+                        height: 1,
+                        color: Colors.lightGreen,
+                      ),
+                      onChanged: (String newValue) {
+                        setState(() {
+                          defaultValueSelect = newValue;
+                          c.type = newValue;
+                          c.url = dofusClass.firstWhere((d)=> d.name == newValue).maleImg;
+                        });
+                      },
+                      items: namesValues
+                          .map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value)
+                        );
+                      }).toList(),
+                    ),
+                    FloatingActionButton.extended(
+                      shape: new RoundedRectangleBorder(),
+                      backgroundColor: Colors.lightGreen,
+                      icon: Icon(Icons.save),
+                      label: Text("Sauvegarde"),
+                      onPressed: () {
+                        //Sauvegarde dans la base de données
+                        c.name = tec.value.text;
+                        insertName(c);
+                        Navigator.of(context).pop();
+                        setState(() {
+                          characters.add(c);
+                          //charactersNames.add(tec.value.text);
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              )
+              // FloatingActionButton.extended(
+              //   icon: Icon(Icons.close),
+              //   label: Text("c"),
+              //   onPressed: () {
+              //     //Fermeture de la popup
+              //     Navigator.of(context).pop();
+              //   },
+              // ),
             ],
           );
         });
@@ -187,14 +227,22 @@ class _MyAppState extends State<MyApp> {
     DataBaseHelper.instance.queryAllRows().then((data) => {
           setState(() => {
                 for (int i = 0; i < data.length; i++)
-                  {charactersNames.add(data[i]["nom"])}
+                  {
+                    characters.add(new Characters(
+                        id: data[i]["_id"],
+                        name: data[i]["nom"],
+                        type: data[i]["type"],
+                        url: data[i]["maleImg"]))
+                  }
               })
         });
   }
 
-  void insertName(nameValue) async {
+  void insertName(Characters character) async {
     Map<String, dynamic> row = {
-      DataBaseHelper.columnName: nameValue,
+      DataBaseHelper.columnName: character.name,
+      DataBaseHelper.columnClass: character.type,
+      DataBaseHelper.columnUrlImg: character.url,
       DataBaseHelper.columnItemsEquipped: ""
     };
     final id = await dbHelper.insert(row);
@@ -204,4 +252,16 @@ class _MyAppState extends State<MyApp> {
   void removeCharactersFromDb(int id) async {
     var test = await dbHelper.delete(id);
   }
+
+  Future<void> getClasses() async {
+    var url = "https://fr.dofus.dofapi.fr/classes";
+    var response = await http.get(url);
+    var array = convert.jsonDecode(response.body);
+
+    for (var elem in array) {
+      dofusClass.add(Classes.fromJson(elem));
+    }
+    //await new Future.delayed(Duration(milliseconds:500));
+  }
+
 }
