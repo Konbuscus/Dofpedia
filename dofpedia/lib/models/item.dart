@@ -1,4 +1,5 @@
 import 'package:dofpedia/models/characters.dart';
+import 'package:dofpedia/models/recipe.dart' as prefix0;
 import 'package:dofpedia/models/stats.dart';
 
 import 'Recipe.dart';
@@ -31,9 +32,11 @@ class Item {
 			statistics = new List<Stats>();
 			json['statistics'].forEach((v) { statistics.add(new Stats.fromJson(v)); });
 		}
-		if (json['recipe'] != null) {
-			recipe = json["recipe"]; 
-		}
+		// if (json['recipe'] != null) {
+    //   recipe = new Recipe();
+
+		// 	recipe = json
+		// }
 		setId = json['setId'];
 	}
 
