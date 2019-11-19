@@ -40,10 +40,10 @@ class DataBaseHelper {
   Future onCreate(Database db, int version) async {
     await db.execute('''CREATE TABLE $charactersTable (
         $columnId INTEGER PRIMARY KEY,
-        $columnName TEXT NOT NULL,
+        $columnName TEXT,
         $columnUrlImg TEXT,
-        $columnClass TEXT NOT NULL,
-        $columnItemsEquipped TEXT NOT NULL
+        $columnClass TEXT ,
+        $columnItemsEquipped TEXT 
       )
       ''');
 

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dofpedia/database.dart';
 import 'package:dofpedia/equipments.dart';
 import 'package:dofpedia/models/characters.dart';
@@ -32,17 +34,16 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final double _kPickerItemHeight = 32.0;
   final dbHelper = DataBaseHelper.instance;
   int tabIndex = 1;
   List<Characters> characters = List<Characters>();
   List<Classes> dofusClass = List<Classes>();
-
+  String defaultValueSelect = "";
   @override
   void initState() {
-    super.initState();
     populateCharacters();
     getClasses();
+    super.initState();
   }
 
   @override
@@ -61,9 +62,7 @@ class _MyAppState extends State<MyApp> {
             child: new IconButton(
               icon: Icon(CupertinoIcons.add, color: Colors.blue),
               onPressed: () {
-                setState(() {
-                  displayAndInput(context);
-                });
+                displayAndInput(context);
               },
             ),
           ),
@@ -103,7 +102,81 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
+  Future displayAndInput(BuildContext context) async {
+    TextEditingController tec = TextEditingController();
+    List<String> namesValues = dofusClass.map((f) => f.name).toList();
+    Characters c = new Characters();
+    namesValues.add("Aucune");
+    defaultValueSelect = "Aucune";
+
+    return showDialog(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: new Text("Nom du personnage"),
+              content: new TextField(
+                controller: tec,
+              ),
+              actions: <Widget>[
+                Container(
+                  child: Column(
+                    children: <Widget>[
+                      DropdownButton<String>(
+                        value: defaultValueSelect,
+                        style: TextStyle(color: Colors.lightGreen),
+                        underline: Container(
+                          height: 1,
+                          color: Colors.lightGreen,
+                        ),
+                        items: namesValues
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                              value: value, child: Text(value));
+                        }).toList(),
+                        onChanged: (String newValue) {
+                          setState(() {
+                            defaultValueSelect = newValue;
+                            c.type = newValue;
+                            c.url = dofusClass
+                                .firstWhere((d) => d.name == newValue)
+                                .maleImg;
+                          });
+                        },
+                      ),
+                      FloatingActionButton.extended(
+                        shape: new RoundedRectangleBorder(),
+                        backgroundColor: Colors.lightGreen,
+                        icon: Icon(Icons.save),
+                        label: Text("Sauvegarde"),
+                        onPressed: () {
+                          if(defaultValueSelect != "Aucune"){
+                          c.name = tec.value.text;
+                          
+                          //Sauvegarde dans la base de données
+                          setState(() {
+                            insertName(c);
+                            Navigator.of(context).pop();
+                            characters.add(c);
+                            characters = List.from(characters);
+                            //charactersNames.add(tec.value.text);
+                          });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                )
+               
+              ],
+            );
+          });
+        });
+  }
+
   Widget buildCharactersListView(BuildContext context) {
+    
     return ListView.builder(
       itemCount: characters.length,
       itemBuilder: (context, index) {
@@ -152,77 +225,6 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-   displayAndInput(BuildContext context){
-    TextEditingController tec = TextEditingController();
-    String defaultValueSelect = dofusClass.elementAt(0).name;
-    List<String> namesValues = dofusClass.map((f) => f.name).toList();
-    Characters c = new Characters();
-    return showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: new Text("Nom du personnage"),
-            content: new TextField(
-              controller: tec,
-            ),
-            actions: <Widget>[
-              Container(
-                child: Column(
-                  children: <Widget>[
-                    DropdownButton<String>(
-                      value: defaultValueSelect,
-                      style: TextStyle(color: Colors.lightGreen),
-                      underline: Container(
-                        height: 1,
-                        color: Colors.lightGreen,
-                      ),
-                      onChanged: (String newValue) {
-                        setState(() {
-                          defaultValueSelect = newValue;
-                          c.type = newValue;
-                          c.url = dofusClass.firstWhere((d)=> d.name == newValue).maleImg;
-                        });
-                      },
-                      items: namesValues
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value)
-                        );
-                      }).toList(),
-                    ),
-                    FloatingActionButton.extended(
-                      shape: new RoundedRectangleBorder(),
-                      backgroundColor: Colors.lightGreen,
-                      icon: Icon(Icons.save),
-                      label: Text("Sauvegarde"),
-                      onPressed: () {
-                        //Sauvegarde dans la base de données
-                        c.name = tec.value.text;
-                        insertName(c);
-                        Navigator.of(context).pop();
-                        setState(() {
-                          characters.add(c);
-                          //charactersNames.add(tec.value.text);
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              )
-              // FloatingActionButton.extended(
-              //   icon: Icon(Icons.close),
-              //   label: Text("c"),
-              //   onPressed: () {
-              //     //Fermeture de la popup
-              //     Navigator.of(context).pop();
-              //   },
-              // ),
-            ],
-          );
-        });
-  }
-
   void populateCharacters() {
     DataBaseHelper.instance.queryAllRows().then((data) => {
           setState(() => {
@@ -246,6 +248,7 @@ class _MyAppState extends State<MyApp> {
       DataBaseHelper.columnItemsEquipped: ""
     };
     final id = await dbHelper.insert(row);
+    print(id);
   }
 
   //TODO: Faire une classe personage et on pourra le delete par son id :)
@@ -263,5 +266,4 @@ class _MyAppState extends State<MyApp> {
     }
     //await new Future.delayed(Duration(milliseconds:500));
   }
-
 }
